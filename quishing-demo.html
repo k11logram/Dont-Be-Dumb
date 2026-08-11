@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>You Won a Prize! 🎉</title>
+<style>
+  :root{
+    --nice-bg1: #FFE8D6;
+    --nice-bg2: #FFCFA0;
+    --nice-accent: #FF8C42;
+    --nice-text: #5C3D2E;
+    --hack-bg: #0A0000;
+    --hack-red: #FF1E1E;
+    --hack-red-dim: #8B0000;
+    --hack-green: #00FF41;
+    --edu-bg: #101820;
+    --edu-accent: #4ECDC4;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{
+    width:100%; height:100%; overflow:hidden;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+  #app{
+    position:relative; width:100vw; height:100vh;
+    cursor:pointer; user-select:none;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .stage{
+    position:absolute; inset:0;
+    display:none; align-items:center; justify-content:center;
+    flex-direction:column;
+    text-align:center;
+    padding:24px;
+  }
+  .stage.active{ display:flex; }
+
+  /* ---------- STAGE 1: nice surprise ---------- */
+  #stage-nice{
+    background: radial-gradient(circle at 50% 30%, var(--nice-bg2), var(--nice-bg1));
+  }
+  .confetti{
+    position:absolute; inset:0; overflow:hidden; pointer-events:none;
+  }
+  .confetti span{
+    position:absolute; top:-40px; font-size:22px;
+    animation: fall linear infinite;
+  }
+  @keyframes fall{
+    to { transform: translateY(110vh) rotate(360deg); }
+  }
+  .puppy{
+    font-size: clamp(90px, 18vw, 160px);
+    animation: bob 2.4s ease-in-out infinite;
+    filter: drop-shadow(0 10px 20px rgba(0,0,0,0.15));
+  }
+  @keyframes bob{
+    0%,100%{ transform: translateY(0) rotate(-3deg); }
+    50%{ transform: translateY(-14px) rotate(3deg); }
+  }
+  #stage-nice h1{
+    color: var(--nice-text);
+    font-size: clamp(28px, 5vw, 44px);
+    margin-top: 18px;
+    font-weight: 800;
+  }
+  #stage-nice p{
+    color: var(--nice-text);
+    opacity:0.85;
+    margin-top:8px;
+    font-size: clamp(14px, 2.5vw, 18px);
+  }
+  .tap-hint{
+    position:absolute; bottom:28px; left:0; right:0;
+    font-size:13px; letter-spacing:0.08em; text-transform:uppercase;
+    color: var(--nice-text); opacity:0.5;
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse{ 0%,100%{opacity:0.35;} 50%{opacity:0.8;} }
+
+  /* ---------- STAGE 2: loading the "prize" ---------- */
+  #stage-loading{
+    background: radial-gradient(circle at 50% 30%, var(--nice-bg2), var(--nice-bg1));
+  }
+  .spinner{
+    width:64px; height:64px;
+    border:6px solid rgba(92,61,46,0.15);
+    border-top-color: var(--nice-accent);
+    border-radius:50%;
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg);} }
+  #stage-loading p{
+    margin-top:20px; color:var(--nice-text); font-size:16px; font-weight:600;
+  }
+
+  /* ---------- STAGE 3: glitch transition ---------- */
+  #stage-glitch{
+    background:#000;
+  }
+  .glitch-bar{
+    width:100%; height:100%; position:absolute; inset:0;
+    background-repeat:no-repeat;
+    animation: staticNoise 0.08s steps(2) infinite;
+    opacity:0.9;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(255,0,0,0.15) 0 2px, transparent 2px 4px),
+      repeating-linear-gradient(90deg, rgba(0,255,255,0.08) 0 2px, transparent 2px 4px);
+  }
+  @keyframes staticNoise{
+    0%{ transform: translate(0,0); }
+    25%{ transform: translate(-1%,1%); }
+    50%{ transform: translate(1%,-1%); }
+    75%{ transform: translate(-1%,-1%); }
+    100%{ transform: translate(1%,1%); }
+  }
+  #stage-glitch h2{
+    position:relative; z-index:2;
+    color:#fff; font-family:'Courier New', monospace;
+    font-size: clamp(26px, 6vw, 48px);
+    letter-spacing:0.05em;
+    animation: glitchText 0.15s infinite;
+  }
+  @keyframes glitchText{
+    0%{ text-shadow: 2px 0 var(--hack-red), -2px 0 cyan; }
+    50%{ text-shadow: -2px 0 var(--hack-red), 2px 0 cyan; }
+    100%{ text-shadow: 2px 0 var(--hack-red), -2px 0 cyan; }
+  }
+
+  /* ---------- STAGE 4: "hacked" ---------- */
+  #stage-hacked{
+    background: var(--hack-bg);
+    flex-direction:column;
+    animation: screenShake 0.25s infinite;
+  }
+  @keyframes screenShake{
+    0%,100%{ transform: translate(0,0); }
+    25%{ transform: translate(2px,-1px); }
+    50%{ transform: translate(-2px,1px); }
+    75%{ transform: translate(1px,2px); }
+  }
+  .skull{
+    font-size: clamp(60px, 12vw, 100px);
+    animation: flashSkull 0.6s infinite alternate;
+  }
+  @keyframes flashSkull{
+    from{ opacity:1; filter: drop-shadow(0 0 10px var(--hack-red)); }
+    to{ opacity:0.6; filter: drop-shadow(0 0 30px var(--hack-red)); }
+  }
+  #stage-hacked h1{
+    font-family:'Courier New', monospace;
+    color: var(--hack-red);
+    font-size: clamp(24px, 5.5vw, 42px);
+    letter-spacing:0.08em;
+    margin-top:14px;
+    animation: flashSkull 0.4s infinite alternate;
+  }
+  .fake-console{
+    margin-top:24px;
+    width:min(520px, 90vw);
+    background: rgba(0,0,0,0.6);
+    border:1px solid var(--hack-red-dim);
+    border-radius:6px;
+    padding:16px;
+    text-align:left;
+    font-family:'Courier New', monospace;
+    font-size: clamp(11px, 2vw, 14px);
+    color: var(--hack-green);
+  }
+  .fake-console div{ margin-bottom:8px; opacity:0; animation: typeIn 0.4s forwards; }
+  .fake-console div:nth-child(1){ animation-delay:0.1s; }
+  .fake-console div:nth-child(2){ animation-delay:0.9s; }
+  .fake-console div:nth-child(3){ animation-delay:1.7s; }
+  .fake-console div:nth-child(4){ animation-delay:2.5s; color:var(--hack-red); font-weight:bold;}
+  @keyframes typeIn{ to{ opacity:1; } }
+  .bar-track{
+    background:#1a1a1a; border-radius:4px; height:8px; margin-top:4px; overflow:hidden;
+  }
+  .bar-fill{
+    height:100%; background: var(--hack-green);
+    width:0%; animation: fillBar 0.8s forwards;
+  }
+  .fake-console div:nth-child(1) .bar-fill{ animation-delay:0.2s; }
+  .fake-console div:nth-child(2) .bar-fill{ animation-delay:1.0s; }
+  .fake-console div:nth-child(3) .bar-fill{ animation-delay:1.8s; }
+  @keyframes fillBar{ to{ width:100%; } }
+
+  /* ---------- STAGE 5: educational reveal ---------- */
+  #stage-reveal{
+    background: linear-gradient(160deg, var(--edu-bg), #16232E);
+    color:#EAF6F6;
+    text-align:left;
+    align-items:stretch;
+    justify-content:flex-start;
+    overflow-y:auto;
+    padding: 40px 24px;
+  }
+  .reveal-inner{
+    max-width:640px; margin:0 auto;
+  }
+  .reveal-badge{
+    display:inline-block;
+    background: var(--edu-accent);
+    color:#0A1418;
+    font-weight:800;
+    font-size:12px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    padding:6px 12px;
+    border-radius:100px;
+    margin-bottom:16px;
+  }
+  #stage-reveal h1{
+    font-size: clamp(24px, 4.5vw, 34px);
+    margin-bottom:8px;
+    line-height:1.15;
+  }
+  #stage-reveal .lede{
+    opacity:0.8; font-size: clamp(14px,2.2vw,17px); margin-bottom:24px; line-height:1.5;
+  }
+  .flag-list{
+    display:grid; gap:12px; margin-bottom:28px;
+  }
+  .flag{
+    display:flex; gap:12px; align-items:flex-start;
+    background: rgba(255,255,255,0.04);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:10px;
+    padding:14px 16px;
+  }
+  .flag .num{
+    font-family:'Courier New', monospace;
+    color: var(--edu-accent);
+    font-weight:800;
+    flex-shrink:0;
+  }
+  .flag .txt strong{ display:block; margin-bottom:2px; font-size:15px; }
+  .flag .txt span{ opacity:0.75; font-size:13.5px; line-height:1.4; }
+  .restart-btn{
+    display:inline-block;
+    background: var(--edu-accent);
+    color:#0A1418;
+    font-weight:700;
+    border:none;
+    padding:12px 22px;
+    border-radius:8px;
+    font-size:15px;
+    cursor:pointer;
+    margin-top:4px;
+  }
+  .restart-btn:active{ transform: scale(0.97); }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- STAGE 1 -->
+  <div class="stage active" id="stage-nice">
+    <div class="confetti" id="confetti"></div>
+    <div class="puppy">🐶</div>
+    <h1>You've Won a Surprise! 🎉</h1>
+    <p>Tap anywhere to claim your prize</p>
+    <div class="tap-hint">tap to continue</div>
+  </div>
+
+  <!-- STAGE 2 -->
+  <div class="stage" id="stage-loading">
+    <div class="spinner"></div>
+    <p>Opening your surprise...</p>
+  </div>
+
+  <!-- STAGE 3 -->
+  <div class="stage" id="stage-glitch">
+    <div class="glitch-bar"></div>
+    <h2>ERROR</h2>
+  </div>
+
+  <!-- STAGE 4 -->
+  <div class="stage" id="stage-hacked">
+    <div class="skull">💀</div>
+    <h1>SYSTEM COMPROMISED</h1>
+    <div class="fake-console">
+      <div>&gt; accessing device storage...<div class="bar-track"><div class="bar-fill"></div></div></div>
+      <div>&gt; reading contacts &amp; photos...<div class="bar-track"><div class="bar-fill"></div></div></div>
+      <div>&gt; installing background process...<div class="bar-track"><div class="bar-fill"></div></div></div>
+      <div>&gt; [DEMO] this is not real. tap to see what just happened →</div>
+    </div>
+  </div>
+
+  <!-- STAGE 5 -->
+  <div class="stage" id="stage-reveal">
+    <div class="reveal-inner">
+      <span class="reveal-badge">Nothing was actually installed</span>
+      <h1>That was a simulated "quishing" attack.</h1>
+      <p class="lede">QR code phishing works exactly like this: a QR code takes you somewhere that looks fun or harmless, builds trust for a few seconds, then delivers the real payload — a fake login page, a malicious download, or a script that runs automatically. Here's what to watch for in real life:</p>
+
+      <div class="flag-list">
+        <div class="flag">
+          <div class="num">01</div>
+          <div class="txt"><strong>Unknown source, no context</strong><span>A QR code on a random flyer, sticker, or parking meter with no clear owner is a red flag — legit ones usually come with a recognizable brand or person attached.</span></div>
+        </div>
+        <div class="flag">
+          <div class="num">02</div>
+          <div class="txt"><strong>You can't preview the link</strong><span>Unlike a text link, you can't hover over a QR code to see where it goes before you commit. Some camera apps show a URL preview before opening — always check it.</span></div>
+        </div>
+        <div class="flag">
+          <div class="num">03</div>
+          <div class="txt"><strong>Urgency or reward bait</strong><span>"You won!", "Limited time!", "Verify now or lose access!" — urgency and rewards are classic pressure tactics to stop you from thinking twice.</span></div>
+        </div>
+        <div class="flag">
+          <div class="num">04</div>
+          <div class="txt"><strong>Shortened or mismatched URLs</strong><span>Watch for shortened links (bit.ly, tinyurl) or domains that almost match a real brand name but aren't quite right.</span></div>
+        </div>
+        <div class="flag">
+          <div class="num">05</div>
+          <div class="txt"><strong>Asks for login, payment, or a download</strong><span>Real prizes don't need your school password. If a scanned page asks you to log in or install something, stop.</span></div>
+        </div>
+      </div>
+
+      <button class="restart-btn" onclick="restart()">↻ Run demo again</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const stages = ['stage-nice','stage-loading','stage-glitch','stage-hacked','stage-reveal'];
+  let current = 0;
+  const app = document.getElementById('app');
+
+  function showStage(i){
+    stages.forEach((id,idx)=>{
+      document.getElementById(id).classList.toggle('active', idx===i);
+    });
+  }
+
+  function advance(){
+    if(current >= stages.length - 1) return; // stay on reveal until restart
+    current++;
+    showStage(current);
+
+    // auto-advance timings for the automated bits
+    if(stages[current] === 'stage-loading'){
+      setTimeout(()=>{ current++; showStage(current); }, 1100);
+      setTimeout(()=>{ current++; showStage(current); }, 1100 + 900); // into hacked
+    }
+  }
+
+  function restart(){
+    current = 0;
+    showStage(current);
+  }
+
+  app.addEventListener('click', (e)=>{
+    // ignore clicks on the restart button (handled separately)
+    if(e.target.closest('.restart-btn')) return;
+    advance();
+  });
+
+  // confetti
+  const confettiWrap = document.getElementById('confetti');
+  const emojis = ['🎉','✨','🎈','⭐'];
+  for(let i=0;i<18;i++){
+    const s = document.createElement('span');
+    s.textContent = emojis[i % emojis.length];
+    s.style.left = Math.random()*100 + '%';
+    s.style.animationDuration = (3 + Math.random()*3) + 's';
+    s.style.animationDelay = (Math.random()*3) + 's';
+    s.style.fontSize = (16 + Math.random()*18) + 'px';
+    confettiWrap.appendChild(s);
+  }
+</script>
+
+</body>
+</html>
