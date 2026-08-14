@@ -233,73 +233,126 @@
   }
 
   // ---------- draw-the-corners escape pattern ----------
-  let patternInitDone = false;
-  function initPatternEscape(){
+  // Corners are defined as PERCENTAGES of the live screen size, recomputed on
+  // every move — this way it doesn't matter if fullscreen resizes the window
+  // after the canvas was first created, and it works on any device size.
+  let patternBound = false;
+  let step = 0;
+  let drawing = false;
+  let path = [];
+
+  function cornerPoints(canvas){
+    const fx = 0.16, fy = 0.16; // 16% in from each edge
+    return [
+      {x: canvas.width*fx,       y: canvas.height*fy},        // top-left
+      {x: canvas.width*(1-fx),   y: canvas.height*fy},        // top-right
+      {x: canvas.width*(1-fx),   y: canvas.height*(1-fy)},    // bottom-right
+      {x: canvas.width*fx,       y: canvas.height*(1-fy)}     // bottom-left
+    ];
+  }
+
+  function resizeCanvas(){
     const canvas = document.getElementById('pattern-canvas');
-    const ctx = canvas.getContext('2d');
+    if(!canvas) return;
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
+    drawMarkers();
+  }
 
-    const margin = 90; // how close to a corner counts as "hitting" it
-    const corners = [
-      {x: margin, y: margin},                                   // top-left
-      {x: canvas.width - margin, y: margin},                    // top-right
-      {x: canvas.width - margin, y: canvas.height - margin},    // bottom-right
-      {x: margin, y: canvas.height - margin}                    // bottom-left
-    ];
-    let step = 0;
-    let drawing = false;
-    let path = [];
+  function drawMarkers(){
+    const canvas = document.getElementById('pattern-canvas');
+    if(!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    const corners = cornerPoints(canvas);
+    const r = Math.max(28, Math.min(canvas.width, canvas.height) * 0.05);
 
-    function dist(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
+    // draw the path so far
+    ctx.strokeStyle = 'rgba(0,255,65,0.6)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    path.forEach((p,i)=>{ i===0 ? ctx.moveTo(p.x,p.y) : ctx.lineTo(p.x,p.y); });
+    ctx.stroke();
 
-    function draw(){
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-      ctx.strokeStyle = 'rgba(0,255,65,0.5)';
-      ctx.lineWidth = 3;
+    // draw corner target markers — hit ones glow green, next one pulses
+    corners.forEach((c, i)=>{
       ctx.beginPath();
-      path.forEach((p,i)=>{ i===0 ? ctx.moveTo(p.x,p.y) : ctx.lineTo(p.x,p.y); });
+      ctx.arc(c.x, c.y, r, 0, Math.PI*2);
+      if(i < step){
+        ctx.fillStyle = 'rgba(0,255,65,0.35)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(0,255,65,0.9)';
+      } else if(i === step){
+        ctx.strokeStyle = 'rgba(0,255,65,0.9)';
+      } else {
+        ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+      }
+      ctx.lineWidth = 2;
       ctx.stroke();
-    }
+    });
+  }
 
-    function pos(e){
-      const t = e.touches ? e.touches[0] : e;
-      return { x: t.clientX, y: t.clientY };
-    }
+  function dist(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
 
-    function onDown(e){
-      drawing = true;
-      path = [pos(e)];
-    }
-    function onMove(e){
-      if(!drawing) return;
-      const p = pos(e);
-      path.push(p);
-      draw();
-      if(step < corners.length && dist(p, corners[step]) < 60){
-        step++;
-        if(step >= corners.length){
-          drawing = false;
-          setTimeout(()=>{ current++; showStage(current); }, 300);
-        }
+  function pos(e){
+    const t = e.touches ? e.touches[0] : e;
+    return { x: t.clientX, y: t.clientY };
+  }
+
+  function onDown(e){
+    e.preventDefault();
+    drawing = true;
+    path = [pos(e)];
+  }
+  function onMove(e){
+    if(!drawing) return;
+    e.preventDefault();
+    const canvas = document.getElementById('pattern-canvas');
+    const p = pos(e);
+    path.push(p);
+
+    const corners = cornerPoints(canvas);
+    const r = Math.max(28, Math.min(canvas.width, canvas.height) * 0.05);
+    if(step < corners.length && dist(p, corners[step]) < r * 1.6){
+      step++;
+      if(step >= corners.length){
+        drawing = false;
+        drawMarkers();
+        setTimeout(()=>{ current++; showStage(current); }, 350);
+        return;
       }
     }
-    function onUp(){
-      drawing = false;
-      // wrong pattern attempt — reset progress and fade the drawn line
-      if(step < corners.length){
-        step = 0;
-        path = [];
-        draw();
-      }
+    drawMarkers();
+  }
+  function onUp(e){
+    if(e) e.preventDefault();
+    drawing = false;
+    if(step < cornerPoints(document.getElementById('pattern-canvas')).length){
+      step = 0;
+      path = [];
+      drawMarkers();
     }
+  }
 
-    canvas.onmousedown = onDown;
-    canvas.onmousemove = onMove;
-    canvas.onmouseup = onUp;
-    canvas.ontouchstart = onDown;
-    canvas.ontouchmove = onMove;
-    canvas.ontouchend = onUp;
+  function initPatternEscape(){
+    step = 0;
+    path = [];
+    drawing = false;
+    resizeCanvas();
+
+    if(patternBound) return; // listeners only need to be attached once
+    patternBound = true;
+    const canvas = document.getElementById('pattern-canvas');
+    canvas.addEventListener('mousedown', onDown);
+    canvas.addEventListener('mousemove', onMove);
+    canvas.addEventListener('mouseup', onUp);
+    canvas.addEventListener('touchstart', onDown, {passive:false});
+    canvas.addEventListener('touchmove', onMove, {passive:false});
+    canvas.addEventListener('touchend', onUp, {passive:false});
+
+    window.addEventListener('resize', resizeCanvas);
+    document.addEventListener('fullscreenchange', ()=>{ setTimeout(resizeCanvas, 50); });
+    document.addEventListener('webkitfullscreenchange', ()=>{ setTimeout(resizeCanvas, 50); });
   }
 
   // keyboard alternative for laptops: Ctrl+Shift+E
@@ -310,11 +363,6 @@
         showStage(current);
       }
     }
-  });
-
-  window.addEventListener('resize', ()=>{
-    const canvas = document.getElementById('pattern-canvas');
-    if(canvas){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
   });
 </script>
 
