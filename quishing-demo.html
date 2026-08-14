@@ -36,7 +36,7 @@
   }
   .stage.active{ display:flex; }
 
-  /* ---------- STAGE 1: nice surprise ---------- */
+ /* ---------- STAGE 1: nice surprise ---------- */
   #stage-nice{ background: radial-gradient(circle at 50% 30%, var(--nice-bg2), var(--nice-bg1)); }
   .confetti{ position:absolute; inset:0; overflow:hidden; pointer-events:none; }
   .confetti span{ position:absolute; top:-40px; font-size:22px; animation: fall linear infinite; }
@@ -47,7 +47,6 @@
   #stage-nice p{ color: var(--nice-text); opacity:0.85; margin-top:8px; font-size: clamp(14px, 2.5vw, 18px); }
   .tap-hint{ position:absolute; bottom:28px; left:0; right:0; font-size:13px; letter-spacing:0.08em; text-transform:uppercase; color: var(--nice-text); opacity:0.5; animation: pulse 1.8s ease-in-out infinite; }
   @keyframes pulse{ 0%,100%{opacity:0.35;} 50%{opacity:0.8;} }
-
   /* ---------- STAGE 2: loading ---------- */
   #stage-loading{ background: radial-gradient(circle at 50% 30%, var(--nice-bg2), var(--nice-bg1)); }
   .spinner{ width:64px; height:64px; border:6px solid rgba(92,61,46,0.15); border-top-color: var(--nice-accent); border-radius:50%; animation: spin 0.9s linear infinite; }
@@ -118,7 +117,7 @@
 </head>
 <body>
 
-<div id="fs-gate">
+<div id="fs-gate" style="display: none;">
   <div class="skull" style="font-size:70px; animation:none;">💀</div>
   <h1 style="color:var(--hack-red); margin-top:12px; font-size:26px; font-family:'Courier New',monospace;">Tap to Continue</h1>
   <p style="color:#888;">Runs fullscreen for the full effect. Press Esc anytime to exit fullscreen — that's a browser safety feature, always available.</p>
@@ -344,6 +343,11 @@
         showStage(current);
       }
     }
+  });
+
+  // Auto-start the demo and show the hacked stage
+  window.addEventListener('load', ()=>{
+    showStage(0);
   });
 </script>
 
