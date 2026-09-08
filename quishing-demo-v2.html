@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>CampusWiFi Free Access</title>
+<style>
+  :root{
+    --nice-bg1: #FFE8D6;
+    --nice-bg2: #FFCFA0;
+    --nice-accent: #FF8C42;
+    --nice-text: #5C3D2E;
+    --hack-bg: #0A0000;
+    --hack-red: #FF1E1E;
+    --hack-red-dim: #8B0000;
+    --hack-green: #00FF41;
+    --edu-bg: #101820;
+    --edu-accent: #4ECDC4;
+    --wifi-bg1: #0B2942;
+    --wifi-bg2: #123A5C;
+    --wifi-accent: #4ECDC4;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{
+    width:100%; height:100%; overflow:hidden;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+  #app{
+    position:relative; width:100vw; height:100vh;
+    cursor:pointer; user-select:none;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .stage{
+    position:absolute; inset:0;
+    display:none; align-items:center; justify-content:center;
+    flex-direction:column;
+    text-align:center;
+    padding:24px;
+  }
+  .stage.active{ display:flex; }
+
+  /* ---------- STAGE: choice ---------- */
+  #stage-choice{ background: radial-gradient(circle at 50% 25%, var(--wifi-bg2), var(--wifi-bg1)); color:#EAF6F6; }
+  #stage-choice .wifi-icon{ font-size:clamp(50px,10vw,80px); }
+  #stage-choice h1{ font-size:clamp(24px,5vw,36px); margin-top:12px; }
+  #stage-choice p.sub{ opacity:0.75; margin-top:8px; font-size:clamp(13px,2.2vw,16px); max-width:420px; }
+  .choice-row{ display:flex; gap:16px; margin-top:32px; flex-wrap:wrap; justify-content:center; }
+  .choice-card{
+    cursor:pointer; width:220px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15);
+    border-radius:14px; padding:22px 16px; transition:transform 0.15s, background 0.15s;
+  }
+  .choice-card:hover{ background:rgba(255,255,255,0.1); transform:translateY(-3px); }
+  .choice-card .icon{ font-size:34px; }
+  .choice-card h3{ margin-top:10px; font-size:16px; }
+  .choice-card span{ display:block; margin-top:6px; font-size:12px; opacity:0.6; }
+
+  /* ---------- STAGE: nice/loading shared bg (unused now, kept minimal) ---------- */
+
+  /* ---------- STAGE: "hacked" (Path A) ---------- */
+  #stage-hacked{ background: var(--hack-bg); flex-direction:column; animation: screenShake 0.25s infinite; }
+  @keyframes screenShake{ 0%,100%{transform:translate(0,0);} 25%{transform:translate(2px,-1px);} 50%{transform:translate(-2px,1px);} 75%{transform:translate(1px,2px);} }
+  .skull{ font-size: clamp(50px, 10vw, 84px); animation: flashSkull 0.6s infinite alternate; }
+  @keyframes flashSkull{ from{opacity:1; filter:drop-shadow(0 0 10px var(--hack-red));} to{opacity:0.6; filter:drop-shadow(0 0 30px var(--hack-red));} }
+  #stage-hacked h1{ font-family:'Courier New', monospace; color: var(--hack-red); font-size: clamp(22px, 5vw, 38px); letter-spacing:0.06em; margin-top:10px; animation: flashSkull 0.4s infinite alternate; }
+  #stage-hacked .subtext{ color:#ff8080; font-family:'Courier New',monospace; font-size:clamp(11px,2vw,14px); margin-top:6px; opacity:0.85;}
+  .fake-console{
+    margin-top:20px; width:min(560px, 92vw); height:min(220px, 32vh);
+    background: rgba(0,0,0,0.65); border:1px solid var(--hack-red-dim); border-radius:6px;
+    padding:14px; text-align:left; font-family:'Courier New', monospace;
+    font-size: clamp(10.5px, 1.8vw, 13px); color: var(--hack-green);
+    overflow:hidden; display:flex; flex-direction:column-reverse;
+  }
+  .fake-console .line{ margin-bottom:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; opacity:0.95; }
+  .fake-console .line.warn{ color: var(--hack-red); font-weight:bold; }
+  .bar-track{ background:#1a1a1a; border-radius:4px; height:6px; margin-top:3px; overflow:hidden; width:180px; display:inline-block; vertical-align:middle; margin-left:8px; }
+  .bar-fill{ height:100%; background: var(--hack-green); }
+  .pattern-hint{ margin-top:18px; font-family:'Courier New',monospace; color:rgba(255,255,255,0.25); font-size:11px; letter-spacing:0.05em; }
+  #pattern-canvas{ position:absolute; inset:0; z-index:5; touch-action:none; }
+
+  /* ---------- STAGE: signup form (Path B) ---------- */
+  #stage-signup{ background: radial-gradient(circle at 50% 25%, var(--wifi-bg2), var(--wifi-bg1)); color:#EAF6F6; }
+  #stage-signup h1{ font-size:clamp(20px,4.5vw,28px); }
+  #stage-signup p.sub{ opacity:0.7; font-size:13px; margin-top:6px; max-width:380px; }
+  .signup-form{ margin-top:22px; width:min(340px, 88vw); text-align:left; }
+  .signup-form label{ font-size:12px; opacity:0.7; display:block; margin-bottom:4px; margin-top:14px; }
+  .signup-form input{
+    width:100%; padding:10px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.2);
+    background:rgba(255,255,255,0.08); color:#fff; font-size:14px;
+  }
+  .signup-form input:focus{ outline:2px solid var(--wifi-accent); }
+  .form-error{ color:#ff8080; font-size:12px; margin-top:10px; min-height:16px; }
+  .signup-form button{
+    margin-top:16px; width:100%; background:var(--wifi-accent); color:#0A1418; font-weight:700;
+    border:none; padding:12px; border-radius:8px; font-size:15px; cursor:pointer;
+  }
+  .signup-form button:active{ transform:scale(0.98); }
+  .privacy-note{ margin-top:14px; font-size:11px; opacity:0.5; max-width:320px; }
+
+  /* ---------- STAGE: connecting ---------- */
+  #stage-connecting{ background: radial-gradient(circle at 50% 25%, var(--wifi-bg2), var(--wifi-bg1)); color:#EAF6F6; }
+  .spinner{ width:56px; height:56px; border:5px solid rgba(255,255,255,0.15); border-top-color: var(--wifi-accent); border-radius:50%; animation: spin 0.9s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg);} }
+  #stage-connecting p{ margin-top:18px; font-size:15px; opacity:0.85; }
+
+  /* ---------- STAGE: fake wifi dashboard ---------- */
+  #stage-wifi-dashboard{ background: radial-gradient(circle at 50% 15%, var(--wifi-bg2), var(--wifi-bg1)); color:#EAF6F6; }
+  #stage-wifi-dashboard h1{ font-size:clamp(20px,4vw,26px); }
+  #stage-wifi-dashboard .connected-badge{ background:rgba(78,205,196,0.15); color:var(--wifi-accent); border:1px solid var(--wifi-accent); padding:4px 12px; border-radius:100px; font-size:12px; margin-top:8px; display:inline-block; }
+  .stat-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin-top:26px; width:min(460px,90vw); }
+  .stat-card{ background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:14px; text-align:left; }
+  .stat-card .label{ font-size:11px; opacity:0.6; text-transform:uppercase; letter-spacing:0.05em; }
+  .stat-card .value{ font-size:20px; font-weight:700; margin-top:4px; font-family:'Courier New',monospace; }
+  .stat-card .mini-bar{ background:rgba(255,255,255,0.1); height:5px; border-radius:3px; margin-top:8px; overflow:hidden; }
+  .stat-card .mini-fill{ height:100%; background:var(--wifi-accent); }
+  .continue-hint{ margin-top:22px; font-size:12px; opacity:0.45; }
+
+  /* ---------- STAGE: educational reveal (shared style) ---------- */
+  .reveal-stage{ background: linear-gradient(160deg, var(--edu-bg), #16232E); color:#EAF6F6; text-align:left; align-items:stretch; justify-content:flex-start; overflow-y:auto; padding: 40px 24px; }
+  .reveal-inner{ max-width:640px; margin:0 auto; }
+  .reveal-badge{ display:inline-block; background: var(--edu-accent); color:#0A1418; font-weight:800; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; padding:6px 12px; border-radius:100px; margin-bottom:16px; }
+  .reveal-stage h1{ font-size: clamp(24px, 4.5vw, 34px); margin-bottom:8px; line-height:1.15; }
+  .reveal-stage .lede{ opacity:0.8; font-size: clamp(14px,2.2vw,17px); margin-bottom:24px; line-height:1.5; }
+  .flag-list{ display:grid; gap:12px; margin-bottom:28px; }
+  .flag{ display:flex; gap:12px; align-items:flex-start; background: rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:14px 16px; }
+  .flag .num{ font-family:'Courier New', monospace; color: var(--edu-accent); font-weight:800; flex-shrink:0; }
+  .flag .txt strong{ display:block; margin-bottom:2px; font-size:15px; }
+  .flag .txt span{ opacity:0.75; font-size:13.5px; line-height:1.4; }
+  .restart-btn, .fs-btn{ display:inline-block; background: var(--edu-accent); color:#0A1418; font-weight:700; border:none; padding:12px 22px; border-radius:8px; font-size:15px; cursor:pointer; margin-top:4px; margin-right:10px; }
+  .restart-btn:active, .fs-btn:active{ transform: scale(0.97); }
+  .info-panel{ background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:16px; margin-bottom:18px; }
+  .info-panel h3{ font-size:14px; margin-bottom:10px; color:var(--edu-accent); }
+  .info-row{ display:flex; justify-content:space-between; font-size:13px; padding:5px 0; border-bottom:1px solid rgba(255,255,255,0.05); }
+  .info-row:last-child{ border-bottom:none; }
+  .info-row .k{ opacity:0.6; }
+  .info-row .v{ font-family:'Courier New',monospace; }
+
+  #fs-gate{
+    position:fixed; inset:0; z-index:50; background:var(--nice-bg1);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:24px;
+  }
+  #fs-gate p{ color:var(--nice-text); opacity:0.7; margin-top:10px; font-size:13px; max-width:360px; }
+
+  .sim-tag{
+    position:absolute; top:10px; right:14px; z-index:10;
+    font-family:'Courier New', monospace; font-size:10px; letter-spacing:0.1em;
+    color: rgba(255,255,255,0.28);
+    pointer-events:none;
+  }
+
+  @media (prefers-reduced-motion: reduce){ *{ animation: none !important; } }
+</style>
+</head>
+<body>
+
+<div id="fs-gate">
+  <div class="skull" style="font-size:70px; animation:none;">💀</div>
+  <h1 style="color:var(--hack-red); margin-top:12px; font-size:26px; font-family:'Courier New',monospace;">📶 Claim Your 1GB Free Data</h1>
+  <p style="color:#888;">Runs fullscreen for the full effect. Press Esc anytime to exit fullscreen — that's a browser safety feature, always available.</p>
+  <button class="fs-btn" style="margin-top:18px;" onclick="startDemo()">Scan &amp; Claim</button>
+</div>
+
+<div id="app">
+
+  <!-- CHOICE -->
+  <div class="stage" id="stage-choice">
+    <div class="sim-tag">[SIM]</div>
+    <div class="wifi-icon">📶</div>
+    <h1>CampusWiFi Free Access</h1>
+    <p class="sub">Choose how long you'd like to stay connected today.</p>
+    <div class="choice-row">
+      <div class="choice-card" onclick="goTo('stage-hacked')">
+        <div class="icon">⏱️</div>
+        <h3>1 Hour Access</h3>
+        <span>Quick connect, no account needed</span>
+      </div>
+      <div class="choice-card" onclick="goTo('stage-signup')">
+        <div class="icon">📅</div>
+        <h3>Full Day Access</h3>
+        <span>Create a free account</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PATH A: HACKED -->
+  <div class="stage" id="stage-hacked">
+    <div class="sim-tag">[SIM]</div>
+    <canvas id="pattern-canvas"></canvas>
+    <div class="skull">💀</div>
+    <h1>SYSTEM COMPROMISED</h1>
+    <div class="subtext" style="max-width:520px; margin-left:auto; margin-right:auto;">You picked Quick Connect — this is what a real quishing attack does after you scan.</div>
+    <div class="subtext">[SIM] Draw the corners of the screen in order to escape: top-left → top-right → bottom-right → bottom-left</div>
+    <div class="fake-console" id="fake-console"></div>
+    <div class="pattern-hint">this is a simulation — nothing on your device is being accessed</div>
+  </div>
+
+  <div class="stage reveal-stage" id="stage-reveal-a">
+    <div class="reveal-inner">
+      <span class="reveal-badge">Nothing was actually installed</span>
+      <h1>The "free data" code just quished you.</h1>
+      <p class="lede">This is exactly how it works in real life: a poster, sticker, or WhatsApp forward promises free airtime or data. You scan it because — honestly — who wouldn't want free data? The page looks legit for a few seconds, builds your trust, then either steals your info directly or (like just now) drops something nasty. Scammers use "free data" specifically because it's one of the most effective bait messages in South Africa right now. Here's how to spot it next time:</p>
+
+      <div class="flag-list">
+        <div class="flag"><div class="num">01</div><div class="txt"><strong>Free data/airtime from an unknown source</strong><span>Network providers don't hand out free data via random stickers, flyers, or forwarded WhatsApp messages. If it's not from the official MTN/Vodacom/Telkom/Cell C app or your own account, it's not real.</span></div></div>
+        <div class="flag"><div class="num">02</div><div class="txt"><strong>You can't preview where a QR code goes</strong><span>Unlike a text link, you can't see the address before you scan. Some phone cameras show a preview of the link before opening it — always check that first.</span></div></div>
+        <div class="flag"><div class="num">03</div><div class="txt"><strong>Urgency or "act now" pressure</strong><span>"Only 50 left!", "Expires in 10 minutes!", "Claim before midnight!" — real deals don't need to rush you. Urgency is the scammer's favourite tool for stopping you from thinking twice.</span></div></div>
+        <div class="flag"><div class="num">04</div><div class="txt"><strong>Shortened or mismatched links</strong><span>Watch for shortened links (bit.ly, tinyurl) or web addresses that almost look like a real network provider's site but are spelled slightly differently.</span></div></div>
+        <div class="flag"><div class="num">05</div><div class="txt"><strong>Asks for your number, PIN, or a download</strong><span>Real airtime/data promos never need your PIN, password, or an app install to "activate" your free data. If it asks for that, close it.</span></div></div>
+      </div>
+
+      <p class="lede" style="font-size:13px; opacity:0.6; margin-bottom:18px;">Also worth knowing: no legitimate webpage — including this one — can ever lock your phone or laptop, survive a restart, or block you from closing it. Esc, force-quitting the browser, or a restart always works against a real browser tab. Anything that claims otherwise is a much bigger red flag than a scary screen.</p>
+
+      <button class="restart-btn" onclick="restart()">↻ Run demo again</button>
+    </div>
+  </div>
+
+  <!-- PATH B: SIGNUP -->
+  <div class="stage" id="stage-signup">
+    <div class="sim-tag">[SIM]</div>
+    <div class="wifi-icon" style="font-size:44px;">📶</div>
+    <h1>Create Your Free Day Pass</h1>
+    <p class="sub">Just a username and password to get connected for the day.</p>
+    <form class="signup-form" id="signup-form" novalidate onsubmit="return handleSignup(event)">
+      <label for="su-username">Username</label>
+      <input id="su-username" type="text" autocomplete="off">
+      <label for="su-password">Password</label>
+      <input id="su-password" type="password" autocomplete="off" oninput="liveCheckMatch()">
+      <label for="su-password2">Confirm Password</label>
+      <input id="su-password2" type="password" autocomplete="off" oninput="liveCheckMatch()">
+      <label style="display:flex; align-items:center; gap:8px; margin-top:12px; font-size:12px; opacity:0.8; cursor:pointer;">
+        <input type="checkbox" id="su-show-pw" onchange="togglePasswordVisibility()" style="width:auto;">
+        Show passwords
+      </label>
+      <div class="form-error" id="su-error"></div>
+      <button type="submit">Connect to WiFi</button>
+    </form>
+    <p class="privacy-note">[SIM] Nothing typed here is sent or saved anywhere — it stays on this device and is only used to show you something at the end.</p>
+  </div>
+
+  <!-- CONNECTING -->
+  <div class="stage" id="stage-connecting">
+    <div class="spinner"></div>
+    <p>Connecting you to CampusWiFi...</p>
+  </div>
+
+  <!-- FAKE WIFI DASHBOARD -->
+  <div class="stage" id="stage-wifi-dashboard">
+    <div class="sim-tag">[SIM]</div>
+    <div class="wifi-icon" style="font-size:40px;">📶</div>
+    <h1>You're Connected!</h1>
+    <div class="connected-badge" id="dash-username">Welcome</div>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="label">Bandwidth</div>
+        <div class="value" id="dash-bandwidth">0 Mbps</div>
+        <div class="mini-bar"><div class="mini-fill" id="dash-bandwidth-bar" style="width:0%"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Connected Users</div>
+        <div class="value" id="dash-users">0</div>
+        <div class="mini-bar"><div class="mini-fill" style="width:70%"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Signal Strength</div>
+        <div class="value" id="dash-signal">Excellent</div>
+        <div class="mini-bar"><div class="mini-fill" style="width:92%"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Time Remaining</div>
+        <div class="value" id="dash-timer">23:59:58</div>
+        <div class="mini-bar"><div class="mini-fill" style="width:99%"></div></div>
+      </div>
+    </div>
+    <div class="continue-hint">tap anywhere to view your connection details</div>
+  </div>
+
+  <!-- PATH B REVEAL -->
+  <div class="stage reveal-stage" id="stage-reveal-b">
+    <div class="reveal-inner">
+      <span class="reveal-badge">Nothing was actually sent anywhere</span>
+      <h1 id="reveal-b-heading">Here's what you just handed over.</h1>
+      <p class="lede">You just went through real credential harvesting — the same flow scammers use with fake WiFi, fake app logins, and fake "verify your account" pages. Everything below happened only in your browser and was never sent or saved anywhere. But if this had been a real attacker's page, they'd now have every bit of it.</p>
+
+      <div class="info-panel">
+        <h3>🔑 What your password revealed</h3>
+        <div class="info-row"><span class="k">Length</span><span class="v" id="pw-length">-</span></div>
+        <div class="info-row"><span class="k">Character variety</span><span class="v" id="pw-variety">-</span></div>
+        <div class="info-row"><span class="k">Estimated crack time (fast attack)</span><span class="v" id="pw-crack-fast">-</span></div>
+        <div class="info-row"><span class="k">Estimated crack time (online, throttled)</span><span class="v" id="pw-crack-slow">-</span></div>
+      </div>
+
+      <div class="info-panel">
+        <h3>📱 What this page could already see about your device</h3>
+        <div class="info-row"><span class="k">Browser / OS</span><span class="v" id="fp-ua">-</span></div>
+        <div class="info-row"><span class="k">Platform</span><span class="v" id="fp-platform">-</span></div>
+        <div class="info-row"><span class="k">Screen resolution</span><span class="v" id="fp-screen">-</span></div>
+        <div class="info-row"><span class="k">Language</span><span class="v" id="fp-lang">-</span></div>
+        <div class="info-row"><span class="k">Timezone</span><span class="v" id="fp-tz">-</span></div>
+        <div class="info-row"><span class="k">CPU cores (approx)</span><span class="v" id="fp-cores">-</span></div>
+        <div class="info-row"><span class="k">Public IP address</span><span class="v" id="fp-ip">checking...</span></div>
+      </div>
+
+      <p class="lede" style="font-size:13px; opacity:0.7;">None of this required "hacking" — a website sees most of this automatically the instant you visit it, no password needed. The password fields just add your credentials on top of it. This is exactly why it matters to check what you're signing up for, avoid reusing the same password everywhere, and think twice before creating an account just to get free WiFi.</p>
+
+      <button class="restart-btn" onclick="restart()">↻ Run demo again</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const app = document.getElementById('app');
+  let consoleTimer = null;
+  let dashInterval = null;
+  let capturedUsername = '';
+
+  function startDemo(){
+    const gate = document.getElementById('fs-gate');
+    const el = document.documentElement;
+    const req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+    if(req){ req.call(el).catch(()=>{}); }
+    gate.style.display = 'none';
+    goTo('stage-choice');
+  }
+
+  function goTo(id){
+    document.querySelectorAll('.stage').forEach(s => s.classList.toggle('active', s.id === id));
+
+    stopFakeConsole();
+    stopDashboard();
+
+    if(id === 'stage-hacked'){
+      startFakeConsole();
+      initPatternEscape();
+    }
+    if(id === 'stage-wifi-dashboard'){
+      startDashboard();
+    }
+    if(id === 'stage-reveal-b'){
+      populateRevealB();
+    }
+  }
+
+  function restart(){
+    document.getElementById('fs-gate').style.display = 'flex';
+    document.getElementById('signup-form').reset();
+    document.getElementById('su-error').textContent = '';
+    document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
+  }
+
+  // ---------- live password helpers ----------
+  function liveCheckMatch(){
+    const pw = document.getElementById('su-password').value;
+    const pw2 = document.getElementById('su-password2').value;
+    const errorEl = document.getElementById('su-error');
+    if(pw2.length === 0){
+      errorEl.textContent = '';
+    } else if(pw !== pw2){
+      errorEl.textContent = 'Passwords do not match yet.';
+      errorEl.style.color = '#ff8080';
+    } else {
+      errorEl.textContent = 'Passwords match ✓';
+      errorEl.style.color = '#7CFFB2';
+    }
+  }
+
+  function togglePasswordVisibility(){
+    const show = document.getElementById('su-show-pw').checked;
+    const type = show ? 'text' : 'password';
+    document.getElementById('su-password').type = type;
+    document.getElementById('su-password2').type = type;
+  }
+
+  // ---------- signup form (Path B) ----------
+  function handleSignup(e){
+    e.preventDefault();
+    const username = document.getElementById('su-username').value.trim();
+    const pw = document.getElementById('su-password').value;
+    const pw2 = document.getElementById('su-password2').value;
+    const errorEl = document.getElementById('su-error');
+    errorEl.style.color = '#ff8080';
+
+    if(!username || !pw || !pw2){
+      errorEl.textContent = 'Please fill in every field.';
+      return false;
+    }
+    if(pw !== pw2){
+      errorEl.textContent = 'Passwords do not match.';
+      return false;
+    }
+    errorEl.textContent = '';
+
+    // Everything below stays local — computed once, then the raw password
+    // is discarded. Nothing is sent over the network or written to storage.
+    capturedUsername = username;
+    window._pwStats = analyzePassword(pw);
+
+    goTo('stage-connecting');
+    setTimeout(()=>{ goTo('stage-wifi-dashboard'); }, 1400);
+    return false;
+  }
+
+  function analyzePassword(pw){
+    const hasLower = /[a-z]/.test(pw);
+    const hasUpper = /[A-Z]/.test(pw);
+    const hasDigit = /[0-9]/.test(pw);
+    const hasSymbol = /[^a-zA-Z0-9]/.test(pw);
+    let charsetSize = 0;
+    if(hasLower) charsetSize += 26;
+    if(hasUpper) charsetSize += 26;
+    if(hasDigit) charsetSize += 10;
+    if(hasSymbol) charsetSize += 32;
+    if(charsetSize === 0) charsetSize = 1;
+
+    const entropyBits = pw.length * Math.log2(charsetSize);
+    const combinations = Math.pow(2, entropyBits);
+
+    // fast attack: ~10 billion guesses/sec (rough offline GPU cracking estimate)
+    const fastSeconds = combinations / 10e9;
+    // slow/throttled: ~10 guesses/sec (typical online login rate-limit scenario)
+    const slowSeconds = combinations / 10;
+
+    let variety = [];
+    if(hasLower) variety.push('lowercase');
+    if(hasUpper) variety.push('uppercase');
+    if(hasDigit) variety.push('numbers');
+    if(hasSymbol) variety.push('symbols');
+
+    return {
+      length: pw.length,
+      variety: variety.length ? variety.join(', ') : 'none detected',
+      fastSeconds, slowSeconds
+    };
+  }
+
+  function formatDuration(seconds){
+    if(!isFinite(seconds)) return 'longer than the universe has existed';
+    if(seconds < 1) return 'instantly';
+    const units = [
+      ['century', 3153600000], ['year', 31536000], ['day', 86400],
+      ['hour', 3600], ['minute', 60], ['second', 1]
+    ];
+    for(const [name, secs] of units){
+      if(seconds >= secs){
+        const val = Math.round(seconds / secs);
+        return val + ' ' + name + (val !== 1 ? 's' : '');
+      }
+    }
+    return 'instantly';
+  }
+
+  // ---------- fake wifi dashboard (Path B) ----------
+  function startDashboard(){
+    document.getElementById('dash-username').textContent = 'Welcome, ' + (capturedUsername || 'guest');
+    const bwEl = document.getElementById('dash-bandwidth');
+    const bwBar = document.getElementById('dash-bandwidth-bar');
+    const usersEl = document.getElementById('dash-users');
+    const timerEl = document.getElementById('dash-timer');
+
+    let seconds = 24*3600 - 2;
+    let userCount = 0;
+    dashInterval = setInterval(()=>{
+      const bw = (20 + Math.random()*60).toFixed(1);
+      bwEl.textContent = bw + ' Mbps';
+      bwBar.style.width = Math.min(100, bw) + '%';
+
+      if(userCount < 142){ userCount += Math.ceil(Math.random()*9); if(userCount>142) userCount=142; }
+      usersEl.textContent = userCount;
+
+      seconds -= 1;
+      if(seconds < 0) seconds = 0;
+      const h = String(Math.floor(seconds/3600)).padStart(2,'0');
+      const m = String(Math.floor((seconds%3600)/60)).padStart(2,'0');
+      const s = String(seconds%60).padStart(2,'0');
+      timerEl.textContent = h+':'+m+':'+s;
+    }, 400);
+
+    document.getElementById('stage-wifi-dashboard').onclick = ()=>{ goTo('stage-reveal-b'); };
+  }
+  function stopDashboard(){
+    if(dashInterval){ clearInterval(dashInterval); dashInterval = null; }
+  }
+
+  // ---------- reveal B: password stats + device fingerprint ----------
+  function populateRevealB(){
+    const heading = document.getElementById('reveal-b-heading');
+    heading.textContent = capturedUsername
+      ? 'Hey ' + capturedUsername + ', here is what you just handed over.'
+      : 'Here is what you just handed over.';
+
+    const stats = window._pwStats || {length:0, variety:'-', fastSeconds:0, slowSeconds:0};
+    document.getElementById('pw-length').textContent = stats.length + ' characters';
+    document.getElementById('pw-variety').textContent = stats.variety;
+    document.getElementById('pw-crack-fast').textContent = formatDuration(stats.fastSeconds);
+    document.getElementById('pw-crack-slow').textContent = formatDuration(stats.slowSeconds);
+
+    document.getElementById('fp-ua').textContent = navigator.userAgent.slice(0, 60) + (navigator.userAgent.length > 60 ? '...' : '');
+    document.getElementById('fp-platform').textContent = navigator.platform || 'unknown';
+    document.getElementById('fp-screen').textContent = screen.width + ' x ' + screen.height;
+    document.getElementById('fp-lang').textContent = navigator.language || 'unknown';
+    try{
+      document.getElementById('fp-tz').textContent = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    }catch(e){ document.getElementById('fp-tz').textContent = 'unknown'; }
+    document.getElementById('fp-cores').textContent = navigator.hardwareConcurrency || 'unknown';
+
+    const ipEl = document.getElementById('fp-ip');
+    fetch('https://api.ipify.org?format=json', {signal: AbortSignal.timeout ? AbortSignal.timeout(3000) : undefined})
+      .then(r => r.json())
+      .then(d => { ipEl.textContent = d.ip; })
+      .catch(() => { ipEl.textContent = 'unavailable (no internet at this venue — on a real connection, this would show your public IP)'; });
+  }
+
+  // ---------- fake extraction feed (Path A) ----------
+  function randHex(len){
+    let s = '';
+    const chars = '0123456789abcdef';
+    for(let i=0;i<len;i++) s += chars[Math.floor(Math.random()*chars.length)];
+    return s;
+  }
+  const fakeActions = [
+    'accessing device storage',
+    'reading contacts.db',
+    'scanning photo library',
+    'extracting saved credentials',
+    'uploading to remote host',
+    'installing background service',
+    'bypassing lock screen',
+    'harvesting browser cookies',
+    'indexing message history'
+  ];
+  function startFakeConsole(){
+    const box = document.getElementById('fake-console');
+    box.innerHTML = '';
+    consoleTimer = setInterval(()=>{
+      const line = document.createElement('div');
+      line.className = 'line';
+      const roll = Math.random();
+      if(roll < 0.35){
+        line.textContent = 'sha256:' + randHex(32) + '...';
+      } else if(roll < 0.7){
+        const action = fakeActions[Math.floor(Math.random()*fakeActions.length)];
+        line.innerHTML = '&gt; ' + action + '<span class="bar-track"><span class="bar-fill" style="width:' + Math.floor(Math.random()*100) + '%"></span></span>';
+      } else {
+        line.className = 'line warn';
+        line.textContent = '[SIM] simulation only — no real data is being read';
+      }
+      box.prepend(line);
+      while(box.children.length > 14){ box.removeChild(box.lastChild); }
+    }, 220);
+  }
+  function stopFakeConsole(){
+    if(consoleTimer){ clearInterval(consoleTimer); consoleTimer = null; }
+  }
+
+  // ---------- draw-the-corners escape pattern (Path A) ----------
+  let patternBound = false;
+  let step = 0;
+  let drawing = false;
+  let path = [];
+
+  function cornerPoints(canvas){
+    const fx = 0.16, fy = 0.16;
+    return [
+      {x: canvas.width*fx,       y: canvas.height*fy},
+      {x: canvas.width*(1-fx),   y: canvas.height*fy},
+      {x: canvas.width*(1-fx),   y: canvas.height*(1-fy)},
+      {x: canvas.width*fx,       y: canvas.height*(1-fy)}
+    ];
+  }
+
+  function resizeCanvas(){
+    const canvas = document.getElementById('pattern-canvas');
+    if(!canvas) return;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    drawMarkers();
+  }
+
+  function drawMarkers(){
+    const canvas = document.getElementById('pattern-canvas');
+    if(!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.strokeStyle = 'rgba(0,255,65,0.6)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    path.forEach((p,i)=>{ i===0 ? ctx.moveTo(p.x,p.y) : ctx.lineTo(p.x,p.y); });
+    ctx.stroke();
+  }
+
+  function dist(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
+
+  function pos(e){
+    const t = e.touches ? e.touches[0] : e;
+    return { x: t.clientX, y: t.clientY };
+  }
+
+  function onDown(e){
+    e.preventDefault();
+    drawing = true;
+    path = [pos(e)];
+  }
+  function onMove(e){
+    if(!drawing) return;
+    e.preventDefault();
+    const canvas = document.getElementById('pattern-canvas');
+    const p = pos(e);
+    path.push(p);
+
+    const corners = cornerPoints(canvas);
+    const r = Math.max(28, Math.min(canvas.width, canvas.height) * 0.05);
+    if(step < corners.length && dist(p, corners[step]) < r * 1.6){
+      step++;
+      if(step >= corners.length){
+        drawing = false;
+        drawMarkers();
+        setTimeout(()=>{ goTo('stage-reveal-a'); }, 350);
+        return;
+      }
+    }
+    drawMarkers();
+  }
+  function onUp(e){
+    if(e) e.preventDefault();
+    drawing = false;
+    if(step < cornerPoints(document.getElementById('pattern-canvas')).length){
+      step = 0;
+      path = [];
+      drawMarkers();
+    }
+  }
+
+  function initPatternEscape(){
+    step = 0;
+    path = [];
+    drawing = false;
+    resizeCanvas();
+
+    if(patternBound) return;
+    patternBound = true;
+    const canvas = document.getElementById('pattern-canvas');
+    canvas.addEventListener('mousedown', onDown);
+    canvas.addEventListener('mousemove', onMove);
+    canvas.addEventListener('mouseup', onUp);
+    canvas.addEventListener('touchstart', onDown, {passive:false});
+    canvas.addEventListener('touchmove', onMove, {passive:false});
+    canvas.addEventListener('touchend', onUp, {passive:false});
+
+    window.addEventListener('resize', resizeCanvas);
+    document.addEventListener('fullscreenchange', ()=>{ setTimeout(resizeCanvas, 50); });
+    document.addEventListener('webkitfullscreenchange', ()=>{ setTimeout(resizeCanvas, 50); });
+  }
+
+  // keyboard alternative for laptops: Ctrl+Shift+E
+  window.addEventListener('keydown', (e)=>{
+    if(document.getElementById('stage-hacked').classList.contains('active')){
+      if(e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'e'){
+        goTo('stage-reveal-a');
+      }
+    }
+  });
+</script>
+
+</body>
+</html>
