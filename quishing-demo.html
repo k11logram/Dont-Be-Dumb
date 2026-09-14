@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
-<title>CampusWiFi Free Access</title>
+<title>Armscor WiFi Access</title>
 <style>
   :root{
     --nice-bg1: #FFE8D6;
@@ -149,8 +149,8 @@
 <body>
 
 <div id="fs-gate">
-  <div class="skull" style="font-size:70px; animation:none;">💀</div>
-  <h1 style="color:var(--hack-red); margin-top:12px; font-size:26px; font-family:'Courier New',monospace;">📶 Claim Your 1GB Free Data</h1>
+  <!----div class="skull" style="font-size:70px; animation:none;">💀</div-->
+  <h1 style="color:var(--hack-red); margin-top:12px; font-size:26px; font-family:'Courier New',monospace;">📶 Press the button to Continue ...</h1>
   <p style="color:#888;">Runs fullscreen for the full effect. Press Esc anytime to exit fullscreen — that's a browser safety feature, always available.</p>
   <button class="fs-btn" style="margin-top:18px;" onclick="startDemo()">Scan &amp; Claim</button>
 </div>
@@ -159,7 +159,7 @@
 
   <!-- CHOICE -->
   <div class="stage" id="stage-choice">
-    <div class="sim-tag">[SIM]</div>
+    <!--div class="sim-tag">[SIM]</div-->
     <div class="wifi-icon">📶</div>
     <h1>Armscor WiFi Access</h1>
     <p class="sub">Choose how long you'd like to stay connected today.</p>
@@ -179,7 +179,7 @@
 
   <!-- PATH A: HACKED -->
   <div class="stage" id="stage-hacked">
-    <div class="sim-tag">[SIM]</div>
+    <!--div class="sim-tag">[SIM]</div-->
     <canvas id="pattern-canvas"></canvas>
     <div class="skull">💀</div>
     <h1>SYSTEM COMPROMISED</h1>
@@ -211,7 +211,7 @@
 
   <!-- PATH B: SIGNUP -->
   <div class="stage" id="stage-signup">
-    <div class="sim-tag">[SIM]</div>
+    <!--div class="sim-tag">[SIM]</div-->
     <div class="wifi-icon" style="font-size:44px;">📶</div>
     <h1>Create Your Free Day Pass</h1>
     <p class="sub">Just a username and password to get connected for the day.</p>
@@ -229,18 +229,18 @@
       <div class="form-error" id="su-error"></div>
       <button type="submit">Connect to WiFi</button>
     </form>
-    <p class="privacy-note">[SIM] Nothing typed here is sent or saved anywhere — it stays on this device and is only used to show you something at the end.</p>
+    <p class="privacy-note">Nothing typed here is sent or saved anywhere — it stays on this device and is only used to show you something at the end.</p>
   </div>
 
   <!-- CONNECTING -->
   <div class="stage" id="stage-connecting">
     <div class="spinner"></div>
-    <p>Connecting you to CampusWiFi...</p>
+    <p>Connecting you to Armscor WiFi...</p>
   </div>
 
   <!-- FAKE WIFI DASHBOARD -->
   <div class="stage" id="stage-wifi-dashboard">
-    <div class="sim-tag">[SIM]</div>
+    <!--div class="sim-tag">[SIM]</div-->
     <div class="wifi-icon" style="font-size:40px;">📶</div>
     <h1>You're Connected!</h1>
     <div class="connected-badge" id="dash-username">Welcome</div>
@@ -542,7 +542,7 @@
         line.innerHTML = '&gt; ' + action + '<span class="bar-track"><span class="bar-fill" style="width:' + Math.floor(Math.random()*100) + '%"></span></span>';
       } else {
         line.className = 'line warn';
-        line.textContent = '[SIM] simulation only — no real data is being read';
+        line.textContent = 'simulation only — no real data is being read';
       }
       box.prepend(line);
       while(box.children.length > 14){ box.removeChild(box.lastChild); }
